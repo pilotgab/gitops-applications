@@ -23,7 +23,7 @@ This diagram represents a sequence of steps initiated by a Pull Request being me
    - If the commit fails, it retries the commit and sends a failure notification to Slack if the retry also fails.
 
 4. **ApplicationSet Configuration**
-   - The ApplicationSet, defined in the `zenith-appset-prod`, watches for changes in the `gitops-applications` repository and deploys applications based on the configurations in the `*.yaml` files located in the `prod/config/zumo-appset/` directory.
+   - The ApplicationSet, defined in the `zenith-appset-prod`, watches for changes in the `gitops-applications` repository and deploys applications based on the configurations in the `*.yaml` files located in the `prod/config/pilotgab-appset/` directory.
    - It deploys to the specified namespace in the `prod` project of the ArgoCD, located in the Kubernetes cluster.
 
 ### Environments and Clusters
@@ -52,7 +52,7 @@ This workflow is responsible for:
 
 ### 4. ApplicationSet Deployment
 
-The ApplicationSet object, `zumo-appset-prod`, is configured to watch the `gitops-applications` repository for changes and deploy applications based on the YAML configurations in the specified path. It deploys the applications to the `prod` project in ArgoCD, which is located in the Kubernetes cluster.
+The ApplicationSet object, `pilotgab-appset-prod`, is configured to watch the `gitops-applications` repository for changes and deploy applications based on the YAML configurations in the specified path. It deploys the applications to the `prod` project in ArgoCD, which is located in the Kubernetes cluster.
 
 ### Clusters and Deployment Strategy
 
