@@ -1,4 +1,5 @@
 name: Argo CD application commit
+run-name: Trigger deploy of ${{ inputs.repo_name }} to ${{ inputs.environment }}
 on:
   workflow_dispatch:
     inputs:
@@ -37,35 +38,8 @@ jobs:
         uses: tibdex/github-app-token@b62528385c34dbc9f38e5f4225ac829252d1ea92
         with:
           app_id: 405974
-          private_key: |
-            -----BEGIN RSA PRIVATE KEY-----
-            MIIEowIBAAKCAQEAxFItkVVOOp3OCoY8XJZe+CE9PzxZOojhOUcrRNf6nlGrt0CT
-            vsSyL02CXA+Gx+3svEmFssYYLEJ1udag8p9whNY2BvDXgxArPHS9uYUH43KXD13T
-            PYf9taRlCaTSQZFNI87S6vxNqphueCmGivOywgmIFqT2d9pmWCRyaHIAwUqoVJRP
-            mHPDCc/mqAkO0L6cXS54Y8ux2gdMRG6bPZxQYvbXVMq//ghKTEEXHpuwkSiDXsUt
-            /R7J9m6WNZfK80fueBNj+MGxyylaB2EwCorlZ46aB8khlTlkU+s9umfbCNJ6hUsE
-            mkyRX6CQ/HbLfzMOspDElS5u7BJji2jPKik/GwIDAQABAoIBAHYMtDngAdpdabgK
-            X+GMyi6KTjnoH/+Cr2uxz+LlvF3W3lqjCjR8MmkfQnP5IiK2ftP5oduOIpr6m6/T
-            z5QVK6O062fhCrZU0qrXx/32cHfkP9GNqagmTfkbkWXrJkMnDCusAkgqzsj2P/ch
-            gTWstKDY+mwjZdFMEp6Ny/3iD3IqVIco8tq1X0m6gcpIEUi/dR5NOQlfehA76CNx
-            +nZBaU7XFcgbSoKhzbzeZbQqlisqUwNgWqiQWWICe+kpGF6jUaE24SrzuX26e2Sp
-            +Q51TJlkvsI6nMBdkq3QOK8CNPJn++yOrM74ubJQdloMNmrV5exZ/KLj9/Mh6Yna
-            fqWMgYECgYEA6taZSkDGVOeeCqi/Mq5ScYdJfyDY+hjUodw9j1IEslH2ft0omo9O
-            c1pqNabWPAKsP3qZfN5sPktwQb3pxLgwUYMwK1iiNBq5oQLOA9BRTqMi0qhUzG1B
-            DzZl7Qs80hYkW9rHSuULXCbWtjTWpJEIZFAo9IaXJLxVCvU2Uv36pF0CgYEA1gMJ
-            tw2etcC9r3sD1ZS/9JgjzwUMrhcduDwo8/YDTOOT6G1WJnxDCSfO9vdn1/z39q4Z
-            08cBhqngg184xaKJ8Yhst1B5eQCmpZZC8nym9tCSs+Qfa/OEoR/J30rmnixixn81
-            FlUTazKxr0PrS+L3G3RjLllsMF0Yurthg41KudcCgYABLrdy4kSdZNUs5JCh5rLP
-            k4jRNQ8io0Fe10cQE6+mXjdJiD+OF66jcg8a2g42GyVW5H0lXdFZtvOHwTcOIIdN
-            wcVaUoXukTviDauP5VqjdLrWKLbUmLA9LV7yBJ53yFjChaV/QQv/mMp3/GggSAKs
-            zqKGKK9WJgSfm4B8hn7emQKBgQDRuxRwQnbBI+xA5stxKl+b8uVU4lv02E6V2M9B
-            llzRo022QEBnYuvHMy4OtZMdBppzM1e4RZTnRd/ynwTiGlIZVFtGoyUIQm0OZd2i
-            CisOQoUiqnNotbPKu354x8yOQm1inhOGmUV4jqu3WVZkfj8wtrTkHVp7YyDzDuOX
-            qoYK7QKBgEVSN9sE42+c17EFgwyvpDiYxnoOZc1LT7hCr9SNzqfQB66HeKlPFW9I
-            6HFPaW53otXJlh5M95XDdMFvs4ZfFHG+bBeCCOweQJwXHAZiVRVCAjmKhS2eRR5S
-            JTW2Mp36F32tSY9/5xhdfXFkepz0648dwW/AdLLEx92waXDBmfwb
-            -----END RSA PRIVATE KEY-----
-
+          private_key: ${{ secrets.GH_PRIVATE_KEY }}
+            
 
       - uses: actions/checkout@v3
         with:
@@ -89,7 +63,7 @@ jobs:
         continue-on-error: true
         uses: EndBug/add-and-commit@v9
         with:
-          cwd: ./${{ inputs.environment }}/config/zumo-appset
+          cwd: ./${{ inputs.environment }}/config/pilotgab-appset
           add: values-${{ inputs.repo_name }}.yaml
           fetch: false
           push: true
@@ -107,7 +81,7 @@ jobs:
         uses: slackapi/slack-github-action@v1.24.0
         if: ${{ failure() && steps.retry-commit.conclusion == 'failure' }}
         with:
-          channel-id: 'C061SR4A63D'
+          channel-id: '8061SR4A637'
           payload: |
             {
                 "text": "Gitops pipeline failed to complete",
