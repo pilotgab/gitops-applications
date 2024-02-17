@@ -18,6 +18,6 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
-            - name: http
-              containerPort: 80
+            - name: test-gitops-port
+              containerPort: {{ .Values.containerPort }}
               protocol: TCP

@@ -2,9 +2,12 @@ replicaCount: 1
 
 
 image:
-  registry: 909048306971.dkr.ecr.eu-west-2.amazonaws.com
+  registry: 909048306999.dkr.ecr.eu-west-2.amazonaws.com
   repository: test-gitops
   tag: dummy
+
+containerPort: 80
+targetPort: 80
 
 service:
   type: LoadBalancer
