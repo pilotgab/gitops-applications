@@ -1,15 +1,15 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: pilotgab-appset-sandbox
+  name: pilotgab-appset-testing-QA
   namespace: argocd
 spec:
   generators:
   - git:
-      repoURL: 'https://github.com/pilotgab/gitops-application.git'
+      repoURL: 'https://github.com/pilotgab/gitops-applications.git'
       revision: main
       files:
-      - path: 'sandbox/config/pilotgab-appset/*.yaml'
+      - path: 'testing-QA/config/pilotgab-appset/*.yaml'
   template:
     metadata:
       annotations:
@@ -20,14 +20,14 @@ spec:
       destination:
         namespace: '{{ clusterConfig.namespace }}'
         server: https://kubernetes.default.svc
-      project: 'sandbox'
+      project: 'testing-QA'
       source:
-        repoURL: https://github.com/pilotgab/gitops-application.git
+        repoURL: https://github.com/pilotgab/gitops-applications.git
         targetRevision: main
         path: 'charts/{{ deployment.image.repository }}'
         helm:
           valueFiles:
-          - ../../sandbox/config/pilotgab-appset/values-{{ deployment.image.repository }}.yaml
+          - ../../testing-QA/config/pilotgab-appset/values-{{ deployment.image.repository }}.yaml
       syncPolicy:
         automated:
           prune: true

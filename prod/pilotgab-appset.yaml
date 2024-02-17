@@ -6,7 +6,7 @@ metadata:
 spec:
   generators:
   - git:
-      repoURL: 'https://github.com/pilotgab/gitops-application.git'
+      repoURL: 'https://github.com/pilotgab/gitops-applications.git'
       revision: main
       files:
       - path: 'prod/config/pilotgab-appset/*.yaml'
@@ -22,7 +22,7 @@ spec:
         server: https://kubernetes.default.svc
       project: 'prod'
       source:
-        repoURL: https://github.com/pilotgab/gitops-application.git
+        repoURL: https://github.com/pilotgab/gitops-applications.git
         targetRevision: main
         path: 'charts/{{ deployment.image.repository }}'
         helm:

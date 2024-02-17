@@ -6,6 +6,9 @@ image:
   repository: test-gitops
   tag: dummy
 
+containerPort: 80
+targetPort: 80
+
 service:
   type: LoadBalancer
   port: 80
