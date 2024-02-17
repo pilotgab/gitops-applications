@@ -1,0 +1,158 @@
+name: Argo CD application commit
+on:
+  workflow_dispatch:
+    inputs:
+      commit_id:
+        description: 'commit id to set for deployment new image'
+        required: true
+        type: string
+      repo_name:
+        description: 'Repo to overwrite file'
+        required: false
+        type: string
+      environment:
+        description: 'Folder to lookup for update'
+        required: false
+        default: 'dev'
+        type: string
+      runner-label:
+        description: 'Assign custom runner to this workflow'
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+permissions:
+  id-token: write
+  contents: write
+  actions: write
+
+
+concurrency: gitops-${{ github.event.inputs.repo_name }}-${{ github.event.inputs.environment }}
+
+jobs:
+  deployment-image:
+    runs-on: ['${{ inputs.runner-label }}']
+    steps:
+      - name: Generate a token
+        id: generate_token
+        uses: tibdex/github-app-token@b62528385c34dbc9f38e5f4225ac829252d1ea92
+        with:
+          app_id: 405974
+          private_key: |
+            -----BEGIN RSA PRIVATE KEY-----
+            MIIEowIBAAKCAQEAxFItkVVOOp3OCoY8XJZe+CE9PzxZOojhOUcrRNf6nlGrt0CT
+            vsSyL02CXA+Gx+3svEmFssYYLEJ1udag8p9whNY2BvDXgxArPHS9uYUH43KXD13T
+            PYf9taRlCaTSQZFNI87S6vxNqphueCmGivOywgmIFqT2d9pmWCRyaHIAwUqoVJRP
+            mHPDCc/mqAkO0L6cXS54Y8ux2gdMRG6bPZxQYvbXVMq//ghKTEEXHpuwkSiDXsUt
+            /R7J9m6WNZfK80fueBNj+MGxyylaB2EwCorlZ46aB8khlTlkU+s9umfbCNJ6hUsE
+            mkyRX6CQ/HbLfzMOspDElS5u7BJji2jPKik/GwIDAQABAoIBAHYMtDngAdpdabgK
+            X+GMyi6KTjnoH/+Cr2uxz+LlvF3W3lqjCjR8MmkfQnP5IiK2ftP5oduOIpr6m6/T
+            z5QVK6O062fhCrZU0qrXx/32cHfkP9GNqagmTfkbkWXrJkMnDCusAkgqzsj2P/ch
+            gTWstKDY+mwjZdFMEp6Ny/3iD3IqVIco8tq1X0m6gcpIEUi/dR5NOQlfehA76CNx
+            +nZBaU7XFcgbSoKhzbzeZbQqlisqUwNgWqiQWWICe+kpGF6jUaE24SrzuX26e2Sp
+            +Q51TJlkvsI6nMBdkq3QOK8CNPJn++yOrM74ubJQdloMNmrV5exZ/KLj9/Mh6Yna
+            fqWMgYECgYEA6taZSkDGVOeeCqi/Mq5ScYdJfyDY+hjUodw9j1IEslH2ft0omo9O
+            c1pqNabWPAKsP3qZfN5sPktwQb3pxLgwUYMwK1iiNBq5oQLOA9BRTqMi0qhUzG1B
+            DzZl7Qs80hYkW9rHSuULXCbWtjTWpJEIZFAo9IaXJLxVCvU2Uv36pF0CgYEA1gMJ
+            tw2etcC9r3sD1ZS/9JgjzwUMrhcduDwo8/YDTOOT6G1WJnxDCSfO9vdn1/z39q4Z
+            08cBhqngg184xaKJ8Yhst1B5eQCmpZZC8nym9tCSs+Qfa/OEoR/J30rmnixixn81
+            FlUTazKxr0PrS+L3G3RjLllsMF0Yurthg41KudcCgYABLrdy4kSdZNUs5JCh5rLP
+            k4jRNQ8io0Fe10cQE6+mXjdJiD+OF66jcg8a2g42GyVW5H0lXdFZtvOHwTcOIIdN
+            wcVaUoXukTviDauP5VqjdLrWKLbUmLA9LV7yBJ53yFjChaV/QQv/mMp3/GggSAKs
+            zqKGKK9WJgSfm4B8hn7emQKBgQDRuxRwQnbBI+xA5stxKl+b8uVU4lv02E6V2M9B
+            llzRo022QEBnYuvHMy4OtZMdBppzM1e4RZTnRd/ynwTiGlIZVFtGoyUIQm0OZd2i
+            CisOQoUiqnNotbPKu354x8yOQm1inhOGmUV4jqu3WVZkfj8wtrTkHVp7YyDzDuOX
+            qoYK7QKBgEVSN9sE42+c17EFgwyvpDiYxnoOZc1LT7hCr9SNzqfQB66HeKlPFW9I
+            6HFPaW53otXJlh5M95XDdMFvs4ZfFHG+bBeCCOweQJwXHAZiVRVCAjmKhS2eRR5S
+            JTW2Mp36F32tSY9/5xhdfXFkepz0648dwW/AdLLEx92waXDBmfwb
+            -----END RSA PRIVATE KEY-----
+
+
+      - uses: actions/checkout@v3
+        with:
+          ref: dev
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Install yq
+        run: |
+          curl -L -O https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz && \
+          tar -xzf ${BINARY}.tar.gz && sudo mv ${BINARY} /usr/bin/yq
+        env:
+          VERSION: v4.34.1
+          BINARY: yq_linux_amd64
+
+      - name: Set new image to values-${{ inputs.repo_name }}.yaml
+        run: |
+          yq -i '.image.tag = "${{ inputs.commit_id }}"' ${{ inputs.environment }}/config/pilotgab-appset/values-${{ inputs.repo_name }}.yaml
+
+      - name: Commit changes
+        id: commit
+        continue-on-error: true
+        uses: EndBug/add-and-commit@v9
+        with:
+          cwd: ./${{ inputs.environment }}/config/zumo-appset
+          add: values-${{ inputs.repo_name }}.yaml
+          fetch: false
+          push: true
+          pull: '--rebase --autostash'
+          message: '${{ inputs.environment }}: new deployment of ${{ inputs.repo_name }} with image ${{ inputs.commit_id }}'
+
+      - name: Retry Commit changes
+        id: retry-commit
+        if: ${{ steps.commit.outcome == 'failure' }}
+        run: |
+          git pull origin dev --rebase && git push origin dev
+
+      - name: Send custom JSON data to Slack workflow
+        id: slack
+        uses: slackapi/slack-github-action@v1.24.0
+        if: ${{ failure() && steps.retry-commit.conclusion == 'failure' }}
+        with:
+          channel-id: 'C061SR4A63D'
+          payload: |
+            {
+                "text": "Gitops pipeline failed to complete",
+                "blocks": [
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "🚨 Gitops Argo CD application commit failed! 🚨",
+                            "emoji": true
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Commit message:* ${{ github.event.head_commit.message }}"
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Author:* ${{ github.actor }}"
+                        }
+                    },
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "GitHub Action run ☁️",
+                                    "emoji": true
+                                },
+                                "style": "primary",
+                                "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                            }
+                        ]
+                    }
+                ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+
+          

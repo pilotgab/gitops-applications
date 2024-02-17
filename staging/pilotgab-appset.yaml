@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: pilotgab-appset-staging
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: 'git@github.com:pilotgab/gitops-applications.git'
+      revision: dev
+      files:
+      - path: 'staging/config/pilotgab-appset/*.yaml'
+  template:
+    metadata:
+      annotations:
+        notifications.argoproj.io/subscribe.on-sync-failed.slack: '{{ channel }}'
+      name: '{{ image.repository }}'
+    spec:
+      destination:
+        namespace: '{{ clusterConfig.namespace }}'
+        server: https://kubernetes.default.svc
+      project: 'staging'
+      source:
+        repoURL: git@github.com:pilotgab/gitops-applications.git
+        targetRevision: dev
+        path: 'charts/{{ image.repository }}'
+        helm:
+          valueFiles:
+          - ../../staging/config/pilotgab-appset/values-{{ image.repository }}.yaml
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  creationTimestamp: "2023-09-16T09:46:59Z"
+  generation: 2
+  name: prod
+  namespace: argocd
+  resourceVersion: "3442063"
+  uid: 97effcaf-b67d-4832-a9fb-9718d085e255
+spec:
+  sourceRepos:
+  - https://github.com/pilotgab/gitops-application.git
+  destinations:
+  - namespace: pilotgab
+    server: https://kubernetes.default.svc
+status: {}

@@ -1,0 +1,20 @@
+replicaCount: 1
+
+
+image:
+  registry: 909048306971.dkr.ecr.eu-west-2.amazonaws.com
+  repository: test-gitops
+  tag: dummy
+
+service:
+  type: LoadBalancer
+  port: 80
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+
+

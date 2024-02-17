@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: pilotgab-appset-prod
+  namespace: argocd
+spec:
+  generators:
+  - git:
+      repoURL: 'https://github.com/pilotgab/gitops-application.git'
+      revision: main
+      files:
+      - path: 'prod/config/pilotgab-appset/*.yaml'
+  template:
+    metadata:
+      annotations:
+        notifications.argoproj.io/subscribe.on-sync-succeeded.slack: '#your-slack-channel'
+        notifications.argoproj.io/subscribe.on-sync-failed.slack: '#your-slack-channel'
+      name: '{{ deployment.image.repository }}'
+    spec:
+      destination:
+        namespace: '{{ clusterConfig.namespace }}'
+        server: https://kubernetes.default.svc
+      project: 'prod'
+      source:
+        repoURL: https://github.com/pilotgab/gitops-application.git
+        targetRevision: main
+        path: 'charts/{{ deployment.image.repository }}'
+        helm:
+          valueFiles:
+          - ../../prod/config/pilotgab-appset/values-{{ deployment.image.repository }}.yaml
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

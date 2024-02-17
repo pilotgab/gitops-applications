@@ -1,0 +1,12 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: staging
+  namespace: argocd
+spec:
+  description: Staging Project
+  sourceRepos:
+    - git@github.com:zumo/gitops-applications.git
+  destinations:
+    - namespace: '*'  # deploy to cluster config namespace
+      server: https://kubernetes.default.svc
