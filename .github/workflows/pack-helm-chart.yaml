@@ -1,0 +1,133 @@
+name: pack-helm-chart
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'charts/**'
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  login-to-amazon-ecr:
+    runs-on: ['ubuntu-latest']
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume:  arn:aws:iam::7779048308871:role/github-actions
+          aws-region: us-east-1
+          mask-aws-account-id: 'false'
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registries: '7779048308871'
+    outputs:
+      registry: ${{ steps.login-ecr.outputs.registry }}
+      docker_username: ${{ steps.login-ecr.outputs.docker_username_7779048308871_dkr_ecr_us_east_1_amazonaws_com }}
+      docker_password: ${{ steps.login-ecr.outputs.docker_password_7779048308871_dkr_ecr_us_east_1_amazonaws_com }}
+
+  # run change detection
+  changes:
+    runs-on: ['ubuntu-latest']
+    outputs:
+      charts: ${{ steps.chart_list.outputs.updated_charts_json }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          # required so workflow fetches git history instead of shallow clone
+          fetch-depth: 0
+      - name: Find all updated charts
+        id: chart_list
+        run: |
+          updated_charts_json=$(git diff --diff-filter=ACM --name-only ${{ github.event.before }} ${{ github.event.after }} | sed -nr 's/^charts\/([0-9a-z-]+)\/(.*)/\1/p' | jq -R -s -c 'split("\n")[:-1] | unique')
+          echo "$updated_charts_json"
+          echo "updated_charts_json=$updated_charts_json" >> $GITHUB_OUTPUT
+
+  push:
+    needs: [changes, login-to-amazon-ecr]
+    if: ${{ needs.changes.outputs.charts != '[]' && needs.changes.outputs.charts != '' }}
+    strategy:
+      matrix:
+        chart: ${{ fromJSON(needs.changes.outputs.charts) }}
+    runs-on: ['ubuntu-latest']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+      - name: Helm Lint
+        run: helm lint charts/${{ matrix.chart }}
+      - name: Helm Registry Login
+        run: helm registry login --username ${{ needs.login-to-amazon-ecr.outputs.docker_username }} --password ${{ needs.login-to-amazon-ecr.outputs.docker_password }} ${{ needs.login-to-amazon-ecr.outputs.registry }}
+      - name: install yq
+        run: |
+          curl -L -O https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz && \
+          tar -xzf ${BINARY}.tar.gz && sudo mv ${BINARY} /usr/bin/yq
+        env:
+          VERSION: v4.34.1
+          BINARY: yq_linux_amd64
+      - name: Update Chart Annotations
+        run: |
+          yq -i '.annotations["branch"] = "${{ github.ref_name }}" | .annotations["sha"] = "${{ github.sha }}"' charts/${{ matrix.chart }}/Chart.yaml
+      - name: Helm Package & Push
+        run: |
+          helm package charts/${{ matrix.chart }} --version 1.0.0
+          helm push ${{ matrix.chart }}-1.0.0.tgz oci://${{ needs.login-to-amazon-ecr.outputs.registry }}/
+      - name: Send custom JSON data to Slack workflow
+        id: slack
+        uses: slackapi/slack-github-action@v1.24.0
+        if: failure()
+        with:
+          channel-id: '864SR4A639'
+          payload: |
+            {
+                "text": "Gitops pipeline failed to complete",
+                "blocks": [
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "🚨 Pack helm chart failed! 🚨",
+                            "emoji": true
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Commit message:* ${{ github.event.head_commit.message }}"
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Author:* ${{ github.actor }}"
+                        }
+                    },
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "GitHub Action run ☁️",
+                                    "emoji": true
+                                },
+                                "style": "primary",
+                                "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                            }
+                        ]
+                    }
+                ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
